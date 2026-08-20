@@ -288,6 +288,7 @@
     <p class="lede">
       「PSA10で何倍」ではなく、<strong>何%でPSA10が出れば損益ゼロになるか</strong>を計算します。
       鑑定料と送料は定額でかかるので、安いカードほどこの数字は高くなります。
+      PSA8以下になる場合も含めて計算します。
     </p>
   </header>
 
@@ -326,10 +327,14 @@
       <span class="inputbox"><span class="unit cur">¥</span><input type="number" id="p10" value="75370" min="0" step="any"></span>
     </div>
     <div class="field">
-      <label for="p9">PSA9の売値
-        <span class="hint">10が出なかったときの受け皿。0にすると「10以外は無価値」として計算します。</span>
-      </label>
+      <label for="p9">PSA9の売値</label>
       <span class="inputbox"><span class="unit cur">¥</span><input type="number" id="p9" value="18520" min="0" step="any"></span>
+    </div>
+    <div class="field">
+      <label for="p8">PSA8以下の売値
+        <span class="hint">実測では生価格の約0.8倍。鑑定料を払って元より安くなる帯です。</span>
+      </label>
+      <span class="inputbox"><span class="unit cur">¥</span><input type="number" id="p8" value="11200" min="0" step="any"></span>
     </div>
   </section>
 
@@ -337,9 +342,10 @@
     <h2>かかる費用</h2>
     <div class="field">
       <label for="grade">鑑定料
-        <span class="hint">初期値は米国PSAの費用を換算したもの。実際に使う窓口の料金に置き換えてください。</span>
+        <span class="hint">PSA Japan レギュラー（申告価格25万円以下・60営業日）の税込価格。
+        バリュー系は現在すべて受付停止のため、これが最安です。</span>
       </label>
-      <span class="inputbox"><span class="unit cur">¥</span><input type="number" id="grade" value="3980" min="0" step="any"></span>
+      <span class="inputbox"><span class="unit cur">¥</span><input type="number" id="grade" value="11980" min="0" step="any"></span>
     </div>
     <div class="field">
       <label for="ship">送料（往復＋発送）</label>
@@ -354,12 +360,19 @@
   <section class="card">
     <h2>想定PSA10率での試算</h2>
     <div class="field">
-      <label for="rate">10が出る確率をこう見積もると</label>
-      <span class="inputbox"><input type="number" id="rate" value="25" min="0" max="100" step="1"><span class="unit">%</span></span>
+      <label for="rate">PSA10が出る確率
+        <span class="hint">初期値はポケモンカード151（英語版）のPSA実測ジェムレート。</span>
+      </label>
+      <span class="inputbox"><input type="number" id="rate" value="27" min="0" max="100" step="1"><span class="unit">%</span></span>
     </div>
-    <input type="range" id="rateRange" min="0" max="100" step="1" value="25" aria-label="想定PSA10率">
+    <input type="range" id="rateRange" min="0" max="100" step="1" value="27" aria-label="想定PSA10率">
+    <div class="field">
+      <label for="rate9">PSA9が出る確率</label>
+      <span class="inputbox"><input type="number" id="rate9" value="49" min="0" max="100" step="1"><span class="unit">%</span></span>
+    </div>
+    <div class="row"><span>残りはPSA8以下</span><span id="rateLow">24%</span></div>
     <div class="breakdown">
-      <div class="row"><span>期待売値</span><span id="bdSell">—</span></div>
+      <div class="row"><span>期待売値（3グレード加重）</span><span id="bdSell">—</span></div>
       <div class="row"><span>販売手数料を引いた受取額</span><span id="bdRevenue">—</span></div>
       <div class="row"><span>総支出（仕入＋鑑定＋送料）</span><span id="bdCost">—</span></div>
       <div class="row total"><span>手元に残る額</span><span id="bdProfit">—</span></div>
@@ -367,15 +380,17 @@
   </section>
 
   <footer>
-    <p><strong>計算式</strong>　分岐率 = (総支出 ÷ (1−手数料) − PSA9価格) ÷ (PSA10価格 − PSA9価格)</p>
+    <p><strong>計算式</strong>　分岐率 = (総支出 ÷ (1−手数料) − PSA8価格 − PSA9率 ×(PSA9価格 − PSA8価格)) ÷ (PSA10価格 − PSA8価格)</p>
+    <p>PSA8以下を無視して10と9の二択にすると、実際には約4枚に1枚起きる「元より安くなる」結果が計算から消えます。</p>
     <p>初期値はポケモンカード151のヒトカゲ 168/165（2026年8月18日時点の実データ）を<strong>1ドル=159.09円</strong>で換算したものです。相場は米国TCGPlayerとeBayの数値なので、国内で仕入れる場合は実際の仕入れ値に置き換えてください。</p>
+    <p><strong>納期</strong>　レギュラーの予定納期は60営業日（約12週間）。売却できるのは約3か月後で、その間の相場変動は計算に含まれていません。</p>
     <p>鑑定結果・売却価格を保証するものではありません。想定PSA10率はカードの状態によって大きく変わります。</p>
   </footer>
 </div>
 
 <script>
   var $ = function (id) { return document.getElementById(id); };
-  var ids = ["raw", "p10", "p9", "grade", "ship", "fee", "rate"];
+  var ids = ["raw", "p10", "p9", "p8", "grade", "ship", "fee", "rate", "rate9"];
 
   function num(id) {
     var v = parseFloat($(id).value);
@@ -400,13 +415,18 @@
     var els = document.querySelectorAll(".unit.cur");
     for (var i = 0; i < els.length; i++) { els[i].textContent = sym; }
 
-    var raw = num("raw"), p10 = num("p10"), p9 = num("p9");
+    var raw = num("raw"), p10 = num("p10"), p9 = num("p9"), p8 = num("p8");
     var grade = num("grade"), ship = num("ship");
     var fee = Math.min(Math.max(num("fee"), 0), 99) / 100;
-    var rate = Math.min(Math.max(num("rate"), 0), 100) / 100;
+
+    var r10 = Math.min(Math.max(num("rate"), 0), 100) / 100;
+    var r9 = Math.min(Math.max(num("rate9"), 0), 100) / 100;
+    if (r10 + r9 > 1) { r9 = 1 - r10; $("rate9").value = Math.round(r9 * 100); }
+    var rLow = 1 - r10 - r9;
+    $("rateLow").textContent = Math.round(rLow * 100) + "%";
 
     var cost = raw + grade + ship;
-    var sell = p10 * rate + p9 * (1 - rate);
+    var sell = p10 * r10 + p9 * r9 + p8 * rLow;
     var revenue = sell * (1 - fee);
     var profit = revenue - cost;
 
@@ -416,48 +436,49 @@
     $("bdProfit").innerHTML = '<span class="' + (profit >= 0 ? "pos" : "neg") + '">'
       + money(profit, sym) + "</span>";
 
-    $("marker").style.left = (rate * 100) + "%";
-    $("marker").setAttribute("data-label", "想定 " + Math.round(rate * 100) + "%");
+    $("marker").style.left = (r10 * 100) + "%";
+    $("marker").setAttribute("data-label", "想定 " + Math.round(r10 * 100) + "%");
 
     var fig = $("breakeven"), pill = $("verdict"), note = $("note"), fill = $("fill");
 
-    if (p10 <= p9) {
+    if (p10 <= p8) {
       fig.innerHTML = "—";
       setVerdict(pill, "計算不能", "ink-3");
-      note.textContent = "PSA10の売値がPSA9以下です。10を狙う意味がないので、分岐率は計算できません。";
+      note.textContent = "PSA10の売値がPSA8以下の売値を上回っていません。鑑定に出す意味がありません。";
       fill.style.width = "0%";
       return;
     }
 
-    var be = (cost / (1 - fee) - p9) / (p10 - p9);
+    // 9率と8以下の売値を固定したまま、損益ゼロになる10率
+    var be = (cost / (1 - fee) - p8 - r9 * (p9 - p8)) / (p10 - p8);
     fill.style.width = Math.min(Math.max(be, 0), 1) * 100 + "%";
 
     if (be <= 0) {
       fig.innerHTML = '0<small>%</small>';
       setVerdict(pill, "10が不要", "good");
-      note.textContent = "PSA9で売れても黒字になります。10を引く必要がありません。";
+      note.textContent = "10が出なくても黒字になります。";
       fill.style.background = "var(--good)";
       return;
     }
-    if (be > 1) {
+    if (be + r9 > 1) {
       fig.innerHTML = (be * 100).toFixed(0) + '<small>%</small>';
       setVerdict(pill, "成立しない", "bad");
-      note.textContent = "100%が10で返ってきても赤字です。この条件では鑑定に出す意味がありません。";
+      note.textContent = "PSA9率" + Math.round(r9 * 100)
+        + "%との合計が100%を超えます。この条件では利益が出ません。";
       fill.style.background = "var(--bad)";
       return;
     }
 
     fig.innerHTML = (be * 100).toFixed(1) + '<small>%</small>';
-
     var token = be < 0.30 ? "good" : (be < 0.45 ? "warn" : "bad");
     var word = be < 0.30 ? "堅い" : (be < 0.45 ? "際どい" : "厳しい");
     setVerdict(pill, word, token);
     fill.style.background = "var(--" + token + ")";
 
-    var per = be > 0 ? Math.max(1, Math.round(1 / be)) : 0;
-    var gap = (rate - be) * 100;
-    note.textContent = per + "枚に1枚が10なら損益ゼロ。想定" + Math.round(rate * 100)
-      + "%とは" + (gap >= 0 ? "+" : "−") + Math.abs(gap).toFixed(0) + "ポイントの差です。";
+    var gap = (r10 - be) * 100;
+    note.textContent = "損益ゼロに必要な10率は" + (be * 100).toFixed(1)
+      + "%。想定" + Math.round(r10 * 100) + "%とは"
+      + (gap >= 0 ? "+" : "−") + Math.abs(gap).toFixed(0) + "ポイントの差です。";
   }
 
   function init() {
